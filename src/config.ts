@@ -1,6 +1,9 @@
 import type { Config } from "../config";
 import fs from "fs";
-const outputFilePath: string = "./.gatorconfig.json";
+
+import os from "os";
+
+const outputFilePath: string = os.homedir() + "/.gatorconfig.json";
 
 function isConfig(value: any): value is Config {
   return (
