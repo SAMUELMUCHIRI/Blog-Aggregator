@@ -15,18 +15,12 @@ function isConfig(value: any): value is Config {
 
 export function setUser(user_name: string) {
   const previousConfig = readConfig();
-  if (previousConfig) {
-    previousConfig.currentUserName = user_name;
+  if (!previousConfig) {
+    throw new Error("Config does not exist");
   }
-  fs.writeFile(
-    outputFilePath,
-    JSON.stringify(previousConfig, null, 4),
-    (err) => {
-      if (err) {
-        console.error(err);
-      }
-    },
-  );
+  previousConfig.currentUserName = user_name;
+  fs.writeFileSync(outputFilePath, JSON.stringify(previousConfig, null, 4));
+  console.log(`User set successfully : config at ${outputFilePath}`);
 }
 export function readConfig(): Config | undefined {
   try {
