@@ -8,6 +8,13 @@
       "when": 1770335473885,
       "tag": "0000_open_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771082174596,
+      "tag": "0001_faulty_sauron",
+      "breakpoints": true
     }
   ]
 }

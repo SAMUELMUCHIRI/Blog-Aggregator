@@ -1,5 +1,5 @@
 import { db } from "..";
-import { users } from "../schema";
+import { users, feeds } from "../schema";
 import { eq } from "drizzle-orm";
 
 export async function createUser(name: string) {
@@ -23,4 +23,21 @@ export async function getUsers() {
 
 export async function deleteAllUsers() {
   await db.delete(users).execute();
+}
+
+export async function createFeed(name: string, url: string, userId: string) {
+  const [result] = await db
+    .insert(feeds)
+    .values({ name, url, userId })
+    .returning();
+  return result;
+}
+
+export async function fetch_allfeeds() {
+  const result = await db
+    .select({ name: feeds.name, url: feeds.url, username: users.name })
+    .from(users)
+    .innerJoin(feeds, eq(users.id, feeds.userId))
+    .execute();
+  return result;
 }
