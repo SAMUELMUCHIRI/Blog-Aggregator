@@ -15,6 +15,13 @@
       "when": 1771082174596,
       "tag": "0001_faulty_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771089977253,
+      "tag": "0002_wise_hydra",
+      "breakpoints": true
     }
   ]
 }

@@ -9,6 +9,8 @@ import {
   agg,
   addfeed,
   feeds,
+  follow,
+  following,
 } from "./functions.js";
 import { argv } from "node:process";
 
@@ -21,6 +23,8 @@ async function main() {
   registerCommand(Registry, "agg", agg);
   registerCommand(Registry, "addfeed", addfeed);
   registerCommand(Registry, "feeds", feeds);
+  registerCommand(Registry, "follow", follow);
+  registerCommand(Registry, "following", following);
 
   const newArgs = argv.slice(2);
   if (newArgs.length > 0) {

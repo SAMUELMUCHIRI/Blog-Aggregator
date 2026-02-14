@@ -9,6 +9,9 @@ import {
   getUsers,
   createFeed,
   fetch_allfeeds,
+  createFeedFollow,
+  FeedFollowsForUser,
+  feedid,
 } from "./../src/lib/db/queries/users.js";
 import { get } from "https";
 
@@ -203,6 +206,11 @@ export async function addfeed(mdName: string, ...args: string[]) {
     }
     console.log(`Added feed ${name} with URL ${url}`);
 
+    let response_feedfollow = await createFeedFollow(
+      response.userId,
+      response.id,
+    );
+    console.log(response_feedfollow);
     return Promise.resolve();
   } catch (error) {
     console.error(error);
@@ -217,4 +225,59 @@ export async function feeds(mdName: string, ...args: string[]) {
     process.exit(1);
   }
   console.log(result);
+}
+
+async function currentUserId() {
+  const currentUsername = tryreadConfig();
+  if (!currentUsername.currentUserName) {
+    console.error(`User not logged in`);
+    process.exit(1);
+  }
+  let current_userid = await getUser(currentUsername.currentUserName);
+  return current_userid.id;
+}
+
+export async function follow(mdName: string, ...args: string[]) {
+  if (!args || args.length < 1) {
+    throw Error('Usage: follow  "url"');
+  }
+  try {
+    let url = args[0];
+    const UserId = await currentUserId();
+    const feedId = await feedid(url);
+    if (!feedId) {
+      console.error(`Feed not found`);
+      process.exit(1);
+    }
+    const All_feeds = await createFeedFollow(UserId, feedId.id);
+    console.log(All_feeds);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}
+
+export async function getFeedFollowsForUser(userId: string) {
+  const result = await FeedFollowsForUser(userId);
+  if (!result) {
+    console.error(`Error fetching feed follows`);
+    process.exit(1);
+  }
+  return result;
+}
+
+export async function following() {
+  const UserId = await currentUserId();
+  const result = await FeedFollowsForUser(UserId);
+  if (!result) {
+    console.error(`Error fetching feed follows`);
+    process.exit(1);
+  }
+  if (result.length === 0) {
+    console.log("No feed follows");
+    process.exit(0);
+  }
+  for (const feed_item of result) {
+    console.log(`${feed_item.feedname} : ${feed_item.username}`);
+  }
 }
