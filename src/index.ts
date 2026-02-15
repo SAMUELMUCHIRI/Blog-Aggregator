@@ -11,27 +11,33 @@ import {
   feeds,
   follow,
   following,
+  unfollow,
+  start,
 } from "./functions.js";
+
+import { middlewareLoggedIn } from "./middleware.js";
 import { argv } from "node:process";
 
 async function main() {
   const Registry: CommandsRegistry = {};
+
   registerCommand(Registry, "login", handlerLogin);
   registerCommand(Registry, "register", handlerRegister);
   registerCommand(Registry, "reset", handlerReset);
   registerCommand(Registry, "users", handlerUsers);
   registerCommand(Registry, "agg", agg);
-  registerCommand(Registry, "addfeed", addfeed);
+  registerCommand(Registry, "addfeed", middlewareLoggedIn(addfeed));
   registerCommand(Registry, "feeds", feeds);
-  registerCommand(Registry, "follow", follow);
-  registerCommand(Registry, "following", following);
+  registerCommand(Registry, "follow", middlewareLoggedIn(follow));
+  registerCommand(Registry, "following", middlewareLoggedIn(following));
+  registerCommand(Registry, "unfollow", middlewareLoggedIn(unfollow));
 
   const newArgs = argv.slice(2);
   if (newArgs.length > 0) {
     const finalArgs = argv.slice(3);
     await runCommand(Registry, newArgs[0], ...finalArgs);
   } else {
-    throw Error("not enough arguments were provided");
+    await start();
   }
 }
 

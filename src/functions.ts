@@ -1,7 +1,12 @@
 import { setUser } from "./config.js";
 import { tryreadConfig } from "./lib/db/index.js";
 import { XMLParser, XMLBuilder, XMLValidator } from "fast-xml-parser";
-import type { CommandsRegistry, CommandHandler } from "../config";
+import type {
+  CommandsRegistry,
+  CommandHandler,
+  UserCommandHandler,
+  User,
+} from "../config";
 import {
   createUser,
   getUser,
@@ -12,6 +17,7 @@ import {
   createFeedFollow,
   FeedFollowsForUser,
   feedid,
+  deleteFeedFollow,
 } from "./../src/lib/db/queries/users.js";
 import { get } from "https";
 
@@ -185,7 +191,7 @@ export async function agg(cmdName: string, ...args: string[]) {
   console.log(result);
 }
 
-export async function addfeed(mdName: string, ...args: string[]) {
+export async function addfeed(cmdName: string, user: User, ...args: string[]) {
   if (!args || args.length < 2) {
     throw Error('Usage: addfeed "name" "url"');
   }
@@ -193,13 +199,7 @@ export async function addfeed(mdName: string, ...args: string[]) {
   try {
     let name = args[0];
     let url = args[1];
-    const currentUsername = tryreadConfig();
-    if (!currentUsername.currentUserName) {
-      console.error(`User not logged in`);
-      process.exit(1);
-    }
-    let current_userid = await getUser(currentUsername.currentUserName);
-    let response = await createFeed(name, url, current_userid.id);
+    let response = await createFeed(name, url, user.id);
     if (!response) {
       console.error(`Error creating feed`);
       process.exit(1);
@@ -237,19 +237,19 @@ async function currentUserId() {
   return current_userid.id;
 }
 
-export async function follow(mdName: string, ...args: string[]) {
+export async function follow(cmdName: string, user: User, ...args: string[]) {
   if (!args || args.length < 1) {
     throw Error('Usage: follow  "url"');
   }
   try {
     let url = args[0];
-    const UserId = await currentUserId();
+
     const feedId = await feedid(url);
     if (!feedId) {
       console.error(`Feed not found`);
       process.exit(1);
     }
-    const All_feeds = await createFeedFollow(UserId, feedId.id);
+    const All_feeds = await createFeedFollow(user.id, feedId.id);
     console.log(All_feeds);
   } catch (error) {
     console.error(error);
@@ -266,9 +266,12 @@ export async function getFeedFollowsForUser(userId: string) {
   return result;
 }
 
-export async function following() {
-  const UserId = await currentUserId();
-  const result = await FeedFollowsForUser(UserId);
+export async function following(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
+  const result = await FeedFollowsForUser(user.id);
   if (!result) {
     console.error(`Error fetching feed follows`);
     process.exit(1);
@@ -280,4 +283,55 @@ export async function following() {
   for (const feed_item of result) {
     console.log(`${feed_item.feedname} : ${feed_item.username}`);
   }
+}
+
+async function currentUser() {
+  const currentUsername = tryreadConfig();
+  if (!currentUsername.currentUserName) {
+    console.error(`User not logged in`);
+    process.exit(1);
+  }
+  let current_user = await getUser(currentUsername.currentUserName);
+  return current_user;
+}
+
+export async function unfollow(cmdName: string, user: User, ...args: string[]) {
+  if (!args || args.length < 1) {
+    throw Error('Usage: unfollow  "url"');
+  }
+  try {
+    let url = args[0];
+
+    const feedId = await feedid(url);
+    if (!feedId) {
+      console.error(`Feed not found`);
+      process.exit(1);
+    }
+    const result = await deleteFeedFollow(user.id, feedId.id);
+    console.log(`Unfollowed ${url}`);
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}
+
+export async function start() {
+  const red = "\x1b[31m";
+  const green = "\x1b[32m";
+  const yellow = "\x1b[33m";
+  const blue = "\x1b[34m";
+  const reset = "\x1b[0m";
+
+  console.log(`------- ${blue}Blog-Aggregator${reset} -------\n`);
+  console.log("\tAvailable Commands");
+  console.log(`- ${green}login${reset} \t:Gets you into a session`);
+  console.log(`- ${green}register${reset} \t:Registers a new user`);
+  console.log(`- ${green}reset${reset} \t:Resets the database`);
+  console.log(`- ${green}users${reset} \t:Lists all users`);
+  console.log(`- ${green}agg${reset} \t\t:Aggregates all feeds`);
+  console.log(`- ${green}addfeed${reset} \t:Adds a new feed`);
+  console.log(`- ${green}feeds${reset} \t:Lists all feeds`);
+  console.log(`- ${green}follow${reset} \t:Follows a feed`);
+  console.log(`- ${green}following${reset} \t:Lists all followed feeds`);
+  console.log(`- ${green}unfollow${reset} \t:Unfollows a feed`);
 }

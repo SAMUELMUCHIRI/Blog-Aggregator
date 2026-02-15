@@ -106,3 +106,12 @@ export async function following(userId: string) {
 
   return result;
 }
+
+export async function deleteFeedFollow(userId: string, feedId: string) {
+  const [result] = await db
+    .delete(feedFollows)
+    .where((eq(feedFollows.userId, userId), eq(feedFollows.feedId, feedId)))
+    .execute();
+
+  return result;
+}

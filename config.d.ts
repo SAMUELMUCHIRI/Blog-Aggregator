@@ -8,6 +8,13 @@ export type CommandHandler = (
   cmdName: string,
   ...args: string[]
 ) => Promise<void>;
+
+type UserCommandHandler = (
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) => Promise<void>;
+
 export type CommandsRegistry = {
   [key: string]: CommandHandler;
 };
@@ -29,4 +36,4 @@ export type RSSItem = {
 };
 
 export type Feed = typeof feeds.$inferSelect; // feeds is the table object in schema.ts
-export type Users = typeof users.$inferSelect; // users is the table object in schema.ts
+export type User = typeof users.$inferSelect; // users is the table object in schema.ts
