@@ -13,6 +13,7 @@ import {
   following,
   unfollow,
   start,
+  browsePosts,
 } from "./functions.js";
 
 import { middlewareLoggedIn } from "./middleware.js";
@@ -31,6 +32,7 @@ async function main() {
   registerCommand(Registry, "follow", middlewareLoggedIn(follow));
   registerCommand(Registry, "following", middlewareLoggedIn(following));
   registerCommand(Registry, "unfollow", middlewareLoggedIn(unfollow));
+  registerCommand(Registry, "browse", middlewareLoggedIn(browsePosts));
 
   const newArgs = argv.slice(2);
   if (newArgs.length > 0) {

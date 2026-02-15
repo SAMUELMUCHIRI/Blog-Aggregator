@@ -6,6 +6,7 @@ import type {
   CommandHandler,
   UserCommandHandler,
   User,
+  Feed,
 } from "../config";
 import {
   createUser,
@@ -18,6 +19,10 @@ import {
   FeedFollowsForUser,
   feedid,
   deleteFeedFollow,
+  getNextFeedToFetch,
+  markFeedFetched,
+  createPost,
+  browse,
 } from "./../src/lib/db/queries/users.js";
 import { get } from "https";
 
@@ -142,13 +147,21 @@ export async function fetchFeed(feedURL: string) {
       console.error("Invalid feed");
       process.exit(1);
     }
+
+    type postItem = {
+      title: string;
+      description: string;
+      link: string;
+      pubDate: string;
+    };
+
     let metadata = {
       title: title,
       description: description,
       link: link,
     };
 
-    let item = {};
+    let item: postItem[] = [];
     let feedItems = [];
 
     if (items) {
@@ -185,10 +198,72 @@ export async function fetchFeed(feedURL: string) {
     process.exit(1);
   }
 }
-
+async function fetchfeed_url(url: string, id: string) {
+  let result = await fetchFeed(url);
+  console.log("Metadata\n");
+  console.log(result.metadata);
+  console.log("\nItems\n");
+  for (let items of Object.values(result.item)) {
+    if (items) {
+      const store = await createPost(
+        items.title,
+        items.link,
+        items.description,
+        items.pubDate,
+        id,
+      );
+    }
+  }
+  return result;
+}
 export async function agg(cmdName: string, ...args: string[]) {
-  let result = await fetchFeed("https://www.wagslane.dev/index.xml");
-  console.log(result);
+  if (!args || args.length < 1) {
+    throw Error('Usage: agg "interval" //  interval like  1s, 1m, 1h');
+  }
+  try {
+    const regex = /^(\d+)(ms|s|m|h)$/;
+    const match = args[0].match(regex);
+    if (!match) {
+      throw Error("Invalid interval");
+    }
+    const digits_regex = /\d+(?=[A-Za-z])/;
+    const units_regex = /[A-Za-z]+$/;
+    let digits = args[0].match(digits_regex);
+    let units = args[0].match(units_regex);
+    let interval = 0;
+
+    if (!digits || !units) {
+      throw Error("Invalid interval");
+    }
+    console.log(`Collecting feeds every ${digits[0]} ${units[0]}`);
+
+    if (units[0] === "ms") {
+      interval = parseInt(digits[0]);
+    } else if (units[0] === "s") {
+      interval = parseInt(digits[0]) * 1000;
+    } else if (units[0] === "m") {
+      interval = parseInt(digits[0]) * 60 * 1000;
+    } else if (units[0] === "h") {
+      interval = parseInt(digits[0]) * 60 * 60 * 1000;
+    }
+
+    scrapeFeeds();
+
+    const interval_fetch = setInterval(() => {
+      scrapeFeeds();
+    }, interval);
+
+    await new Promise<void>((resolve) => {
+      process.on("SIGINT", () => {
+        console.log("Shutting down feed aggregator...");
+        clearInterval(interval);
+        resolve();
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
 }
 
 export async function addfeed(cmdName: string, user: User, ...args: string[]) {
@@ -334,4 +409,80 @@ export async function start() {
   console.log(`- ${green}follow${reset} \t:Follows a feed`);
   console.log(`- ${green}following${reset} \t:Lists all followed feeds`);
   console.log(`- ${green}unfollow${reset} \t:Unfollows a feed`);
+}
+
+export async function scrapeFeeds() {
+  const nextFeedUrl = await getNextFeedToFetch();
+  if (!nextFeedUrl) {
+    console.log("No feeds to fetch");
+    return;
+  }
+  if (!nextFeedUrl.url) {
+    console.log("No feeds to fetch url null");
+    return;
+  }
+
+  const markFetch = await markFeedFetched(nextFeedUrl.id);
+
+  const feedData = await fetchfeed_url(nextFeedUrl.url, nextFeedUrl.id);
+  console.log(
+    `Feed ${feedData.metadata.title} collected, ${
+      Object.keys(feedData.item).length
+    } posts found`,
+  );
+}
+
+function handleError(err: unknown) {
+  console.error(
+    `Error scraping feeds: ${err instanceof Error ? err.message : err}`,
+  );
+}
+
+export async function browsePosts(
+  cmdName: string,
+  user: User,
+  ...args: string[]
+) {
+  const red = "\x1b[31m";
+  const green = "\x1b[32m";
+  const yellow = "\x1b[33m";
+  const blue = "\x1b[34m";
+  const reset = "\x1b[0m";
+
+  const posts = await browse(user.id);
+  console.log("Latest Posts in the Blog-Aggregator:");
+  posts.forEach((post) => {
+    console.log(`- ${post.title} `);
+    console.log(`   ${blue}(${post.url})${reset}`);
+    if (post.description) {
+      console.log(
+        `  ${green} ${compressToHalfScreenLines(post.description)}${reset}\n`,
+      );
+    }
+
+    console.log(`  ${yellow}  ${post.publishedAt}${reset}\n `);
+  });
+}
+
+function compressToHalfScreenLines(html: string) {
+  const text = html.replace(/<[^>]*>/g, ""); // strip HTML tags
+  const halfWidth = Math.floor(process.stdout.columns / 2);
+
+  // Split text into words
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    if ((currentLine + " " + word).trim().length > halfWidth) {
+      lines.push(currentLine.trim());
+      currentLine = word;
+    } else {
+      currentLine += " " + word;
+    }
+  }
+
+  if (currentLine) lines.push(currentLine.trim());
+
+  return lines.join("\n");
 }

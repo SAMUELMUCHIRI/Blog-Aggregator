@@ -22,6 +22,20 @@
       "when": 1771089977253,
       "tag": "0002_wise_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771174674577,
+      "tag": "0003_curved_madelyne_pryor",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771191028156,
+      "tag": "0004_fresh_baron_strucker",
+      "breakpoints": true
     }
   ]
 }
