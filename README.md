@@ -121,7 +121,7 @@ npm run start
 |---------|-------------|
 | `login` | Authenticate and start a session |
 | `register` | Create a new user account |
-| `reset` | Reset the database (⚠️ Destructive) |
+| `reset` | Reset the database ( Destructive) |
 | `users` | List all registered users |
 | `agg` | Aggregate and fetch all feeds |
 | `addfeed` | Add a new RSS/Atom feed |
@@ -137,7 +137,7 @@ npm run start
 npm run start
 
 # Register a new account
-> register "johndoe"
+npm run start register "johndoe"
 
 # Add a feed
 npm run start addfeed  "Example Blog" "https://example.com/feed.xml"
