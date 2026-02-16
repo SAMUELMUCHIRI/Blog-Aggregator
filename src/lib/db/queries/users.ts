@@ -176,3 +176,8 @@ export async function browse(userId: string) {
 
   return result;
 }
+
+export async function health() {
+  const [result] = await db.execute("select 1 as health");
+  return result;
+}
